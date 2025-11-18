@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jettybackend
+  namespace: skibidichat
+spec:
+  selector:
+    app: jettybackend
+  ports:
+    - name: http
+      port: 8090
+      targetPort: 8090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jettybackend
+  namespace: skibidichat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jettybackend
+  template:
+    metadata:
+      labels:
+        app: jettybackend
+    spec:
+      containers:
+        - name: jettybackend
+          image: skibidichat/jettybackend:latest
+          command: ["java", "-jar", "fat-jar-with-dependencies.jar"]
+          ports:
+            - containerPort: 8090
+          env:
+            - name: MONGO_URL
+              value: "mongodb://mongodb:27017/?serverSelectionTimeoutMS=2000"
+            - name: REDIS_URL
+              value: "redis"
+            - name: CADDY_JWTAUTH_SIGN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: skibidichat-jwt-secret
+                  key: CADDY_JWTAUTH_SIGN_KEY
+
+

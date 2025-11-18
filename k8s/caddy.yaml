@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy
+  namespace: skibidichat
+spec:
+  type: LoadBalancer
+  selector:
+    app: caddy
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: https
+      port: 443
+      targetPort: 443
+    - name: http-alt
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy
+  namespace: skibidichat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: caddy
+  template:
+    metadata:
+      labels:
+        app: caddy
+    spec:
+      containers:
+        - name: caddy
+          image: skibidichat/caddy-jwt-custom:latest
+          ports:
+            - containerPort: 80
+            - containerPort: 443
+            - containerPort: 8080
+          env:
+            - name: CADDY_JWTAUTH_SIGN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: skibidichat-jwt-secret
+                  key: CADDY_JWTAUTH_SIGN_KEY
+          volumeMounts:
+            - name: caddy-config
+              mountPath: /etc/caddy/Caddyfile
+              subPath: Caddyfile
+            - name: caddy-web
+              mountPath: /srv/web
+            - name: caddy-data
+              mountPath: /data
+            - name: caddy-config-dir
+              mountPath: /config
+      volumes:
+        - name: caddy-config
+          configMap:
+            name: caddy-config
+            items:
+              - key: Caddyfile
+                path: Caddyfile
+        - name: caddy-web
+          configMap:
+            name: caddy-web
+        - name: caddy-data
+          persistentVolumeClaim:
+            claimName: caddy-data-pvc
+        - name: caddy-config-dir
+          persistentVolumeClaim:
+            claimName: caddy-config-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: caddy-data-pvc
+  namespace: skibidichat
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: caddy-config-pvc
+  namespace: skibidichat
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+

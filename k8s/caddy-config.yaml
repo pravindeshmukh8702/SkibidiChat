@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+  namespace: skibidichat
+data:
+  Caddyfile: |
+    {
+    	order jwtauth before reverse_proxy
+    	debug
+    }
+
+    :8080 {
+    	encode gzip
+    	tls internal
+
+    	route /ws {
+    		jwtauth {
+    			sign_key {$CADDY_JWTAUTH_SIGN_KEY}
+    			sign_alg HS256
+    			user_claims name
+    			from_query token
+    		}
+
+    		reverse_proxy jettybackend:8090 {
+    			header_up X-User {http.auth.user.id}
+    			header_up Upgrade websocket
+    			header_up Connection Upgrade
+    		}
+    	}
+
+    	@css path /css/*
+    	handle @css {
+    		root * ./web
+    		file_server
+    		header {
+    			Cache-Control "public, max-age=31536000"
+    		}
+    	}
+
+    	@js path /js/*
+    	handle @js {
+    		root * ./web
+    		file_server
+    		header {
+    			Cache-Control "public, max-age=31536000"
+    		}
+    	}
+
+    	route / {
+    		file_server {
+    			root ./web
+    			index index.html
+    		}
+
+    		header / {
+    			Cache-Control "public, max-age=31536000"
+    		}
+    	}
+
+    	route /* {
+    		reverse_proxy jettybackend:8090
+    	}
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-web
+  namespace: skibidichat
+data:
+  # In production you should serve static files from an image or a separate volume.
+  # This placeholder exists so the /srv/web mount is valid.
+  placeholder.txt: "Replace this ConfigMap with real static assets or bake them into the Caddy image."
+
+
