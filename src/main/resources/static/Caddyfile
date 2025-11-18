@@ -3,14 +3,13 @@
 	debug
 }
 
-localhost:8080 {
-	# bind any interface IP
+# Listen on all interfaces on port 8080 so it works with the host's public IP.
+# We intentionally serve plain HTTP here so that accessing http://PUBLIC_IP:8080
+# does not require a hostname-based TLS certificate.
+:8080 {
 	encode gzip
-	# Will only work if cloudflare module is installed
-	# tls {
-	#    dns cloudflare abcd
-	# } 
-	 tls internal
+	# If you later have a proper domain and want HTTPS, you can enable TLS like:
+	# tls internal
 
 	route /ws {
 		jwtauth {
